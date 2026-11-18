@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor Financiero Pro Master</title>
+    <style>
+        :root {
+            --primary: #0a84ff;
+            --success: #30d158;
+            --danger: #ff453a;
+            --warning: #ffd60a;
+            --purple: #5e5ce6;
+            --bg: #000000;
+            --card: #1c1c1e;
+            --card-sub: #2c2c2e;
+            --text: #f2f2f7;
+            --gray: #8e8e93;
+            --border: #38383a;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 16px;
+            max-width: 480px;
+            margin: auto;
+            -webkit-font-smoothing: antialiased;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        header h1 { font-size: 24px; font-weight: 700; margin: 0; color: var(--text); }
+        header p { font-size: 13px; color: var(--gray); margin-top: 4px; }
+
+        /* Tarjeta de Balance General */
+        .summary-card {
+            background: linear-gradient(135deg, #1c1c1e, #2c2c2e);
+            color: white;
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            position: relative;
+        }
+        .summary-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .summary-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #aeaeb2; }
+        .eye-toggle-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .summary-amount { font-size: 30px; font-weight: 800; margin: 4px 0 12px 0; }
+        
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .account-box label { font-size: 10px; color: #aeaeb2; display: block; text-transform: uppercase; }
+        .account-box span { font-size: 15px; font-weight: 700; }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            padding-top: 10px;
+        }
+        .summary-sub label { font-size: 11px; color: #aeaeb2; display: block; }
+        .summary-sub span { font-size: 14px; font-weight: 600; }
+
+        /* Navegación por pestañas */
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            margin-bottom: 20px;
+            scrollbar-width: none;
+        }
+        .nav-tabs::-webkit-scrollbar { display: none; }
+        .tab-btn {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(10,132,255,0.3);
+        }
+
+        /* Secciones de Contenido */
+        .section-view { display: none; }
+        .section-view.active { display: block; }
+
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+        }
+        .card h3 { font-size: 16px; margin-top: 0; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; color: var(--text); }
+        
+        /* Formularios modo oscuro */
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border);
+            background: var(--card-sub);
+            color: var(--text);
+            border-radius: 10px;
+            font-size: 15px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input:focus, select:focus { border-color: var(--primary); }
+        
+        .action-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(10,132,255,0.3);
+        }
+        .action-btn.danger { background-color: var(--danger); box-shadow: 0 4px 10px rgba(255,69,58,0.3); }
+        .action-btn.success { background-color: var(--success); box-shadow: 0 4px 10px rgba(48,209,88,0.3); }
+        .action-btn.warning { background-color: var(--warning); color: #000; font-weight: 700; box-shadow: 0 4px 10px rgba(255,214,10,0.3); }
+
+        /* Listas de Elementos */
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .item-row:last-child { border-bottom: none; }
+        .item-details b { font-size: 15px; display: block; color: var(--text); }
+        .item-date { font-size: 11px; color: var(--gray); margin-top: 2px; }
+        
+        .tags-container {
+            display: flex;
+            gap: 5px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+        .badge { font-size: 10px; padding: 2px 6px; border-radius: 6px; font-weight: 600; display: inline-block; }
+        
+        .item-right { text-align: right; }
+        .item-price { font-size: 15px; font-weight: 700; display: block; }
+        .item-price.hidden-price { text-decoration: line-through; color: var(--gray) !important; opacity: 0.5; }
+        
+        .inline-controls {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .action-icon-btn {
+            background: var(--card-sub);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 4px 7px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .delete-icon {
+            background: rgba(255, 69, 58, 0.15);
+            border: none;
+            color: var(--danger);
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        
+        .status-btn {
+            background: var(--card-sub);
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .status-btn.pagado { background: rgba(48,209,88,0.15); color: var(--success); border-color: transparent; }
+        .status-btn.pendiente { background: rgba(255,214,10,0.15); color: var(--warning); border-color: transparent; }
+
+        .empty-state { text-align: center; color: var(--gray); font-size: 13px; padding: 15px 0; }
+        
+        .section-total-box {
+            background: var(--card-sub);
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-top: 12px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 14px;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Finanzas Master</h1>
+        <p>Historial inmutable & Estadísticas por Fechas</p>
+    </header>
+
+    <!-- Resumen General -->
+    <div class="summary-card">
+        <div class="summary-header-row">
+            <div class="summary-title">Balance Total Neto</div>
+            <button class="eye-toggle-btn" onclick="toggleOcultarTotales()" id="btnOcultarTotales">👁️ Ocultar</button>
+        </div>
+        <div class="summary-amount" id="balanceNeto">$0</div>
+        
+        <div class="accounts-grid">
+            <div class="account-box">
+                <label>💵 Efectivo Físico</label>
+                <span id="saldoEfectivo">$0</span>
+            </div>
+            <div class="account-box">
+                <label>📱 Nequi / Bancos</label>
+                <span id="saldoBanco">$0</span>
+            </div>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-sub">
+                <label>Total Ingresos</label>
+                <span id="totalIngresos" style="color: var(--success);">$0</span>
+            </div>
+            <div class="summary-sub">
+                <label>Total Gastos</label>
+                <span id="totalGastos" style="color: var(--danger);">$0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegación por pestañas -->
+    <div class="nav-tabs">
+        <button class="tab-btn active" onclick="cambiarTab('deudas', event)">💳 Deudas</button>
+        <button class="tab-btn" onclick="cambiarTab('ingresos', event)">💰 Ingresos</button>
+        <button class="tab-btn" onclick="cambiarTab('gastos', event)">💸 Gastos</button>
+        <button class="tab-btn" onclick="cambiarTab('rapida', event)">⚡ Rápida</button>
+        <button class="tab-btn" onclick="cambiarTab('historial', event)">📅 Historial</button>
+        <button class="tab-btn" onclick="cambiarTab('estadisticas', event)">📊 Estadísticas</button>
+        <button class="tab-btn" onclick="cambiarTab('categorias', event)">🏷️ Categorías</button>
+    </div>
+
+    <!---------------- SECCIÓN DEUDAS ---------------->
+    <div id="view-deudas" class="section-view active">
+        <div class="card">
+            <h3>Registrar Deuda / Préstamo</h3>
+            <input type="text" id="deudaNombre" placeholder="Persona o concepto (ej. Juan)">
+            <input type="text" id="deudaMonto" placeholder="Monto ($ mín. 100)" oninput="formatearInputMonto(this)">
+            <select id="deudaTipo">
+                <option value="Me deben">Me deben (A favor)</option>
+                <option value="Debo">Debo (En contra)</option>
+            </select>
+            <select id="deudaCuenta">
+                <option value="Efectivo">Afecta: Efectivo</option>
+                <option value="Banco">Afecta: Nequi / Bancos</option>
+            </select>
+            <button class="action-btn" onclick="agregarTransaccion('deudas')">Añadir Deuda</button>
+        </div>
+
+        <div class="card">
+            <h3>Listado de Deudas</h3>
+            <div id="listaDeudas"></div>
+            <div class="section-total-box">
+                <span>Suma Total Deudas:</span>
+                <span id="sumaDeudasTotal">$0</span>
+            </div>
+        </div>
+    </div>
+
+    <!---------------- SECCIÓN INGRESOS ---------------->
+    <div id="view-ingresos" class="section-view">
+        <div class="card">
+            <h3>Registrar Nuevo Ingreso</h3>
+            <input type="text" id="ingresoNombre" placeholder="Concepto (ej. Salario, Venta)">
+            <input type="text" id="ingresoMonto" placeholder="Monto ($ mín. 100)" oninput="formatearInputMonto(this)">
+            <select id="ingresoCat"></select>
+            <select id="ingresoCuenta">
+                <option value="Banco">Ingresa a: Nequi / Bancos</option>
+                <option value="Efectivo">Ingresa a: Efectivo</option>
+            </select>
+            <button class="action-btn success" onclick="agregarTransaccion('ingresos')">Registrar Ingreso</button>
+        </div>
+
+        <div class="card">
+            <h3>Historial de Ingresos</h3>
+            <div id="listaIngresos"></div>
+            <div class="section-total-box">
+                <span>Suma Total Ingresos:</span>
+                <span id="sumaIngresosTotal">$0</span>
+            </div>
+        </div>
+    </div>
+
+    <!---------------- SECCIÓN GASTOS ---------------->
+    <div id="view-gastos" class="section-view">
+        <div class="card">
+            <h3>Registrar Gasto o Pago</h3>
+            <input type="text" id="gastoNombre" placeholder="Concepto (ej. Alquiler, Luz)">
+            <input type="text" id="gastoMonto" placeholder="Monto ($ mín. 100)" oninput="formatearInputMonto(this)">
+            <select id="gastoCat"></select>
+            <select id="gastoCuenta">
+                <option value="Banco">Se paga desde: Nequi / Bancos</option>
+                <option value="Efectivo">Se paga desde: Efectivo</option>
+            </select>
+            <button class="action-btn warning" onclick="agregarTransaccion('gastos')">Registrar Gasto</button>
+        </div>
+
+        <div class="card">
+            <h3>Listado de Gastos</h3>
+            <div id="listaGastos"></div>
+            <div class="section-total-box">
+                <span>Suma Total Gastos:</span>
+                <span id="sumaGastosTotal">$0</span>
+            </div>
+        </div>
+    </div>
+
+    <!---------------- SECCIÓN CUENTA RÁPIDA ---------------->
+    <div id="view-rapida" class="section-view">
+        <div class="card">
+            <h3>⚡ Cuenta Rápida Temporal</h3>
+            <p style="font-size: 12px; color: var(--gray); margin-top:0;">Concepto opcional.</p>
+            <input type="text" id="rapidaNombre" placeholder="Concepto (Opcional)">
+            <input type="text" id="rapidaMonto" placeholder="Monto ($ mín. 100)" oninput="formatearInputMonto(this)">
+            <button class="action-btn" style="background:var(--purple);" onclick="agregarRapido()">Agregar a Cuenta Rápida</button>
+        </div>
+
+        <div class="card">
+            <h3>Lista Temporal</h3>
+            <div id="listaRapida"></div>
+            <div class="section-total-box" style="background: rgba(94,92,230,0.15); color: #9896f1;">
+                <span>Total Temporal Rápido:</span>
+                <span id="sumaRapidaTotal">$0</span>
+            </div>
+            <button class="action-btn danger" style="margin-top: 14px;" onclick="borrarTodoRapido()">🗑️ Borrar Todo Temporal</button>
+        </div>
+    </div>
+
+    <!---------------- SECCIÓN HISTORIAL INMUTABLE ---------------->
+    <div id="view-historial" class="section-view">
+        <div class="card">
+            <h3>📅 Historial Completo de Movimientos</h3>
+            <p style="font-size: 12px; color: var(--gray); margin-top:0;">Este registro es permanente. Aunque borres elementos de tus listas principales, quedan guardados aquí.</p>
+            <div id="listaHistorialGeneral"></div>
+        </div>
+    </div>
+
+    <!---------------- SECCIÓN ESTADÍSTICAS Y FILTROS POR FECHA ---------------->
+    <div id="view-estadisticas" class="section-view">
+        <div class="card">
+            <h3>📊 Estadísticas por Fecha</h3>
+            <select id="filtroTipoFecha" onchange="actualizarEstadisticas()">
+                <option value="dia">📅 Filtrar por Día de Hoy</option>
+                <option value="semana">📆 Filtrar por Semana Actual</option>
+                <option value="mes">🗓️ Filtrar por Mes Actual</option>
+            </select>
+
+            <div style="margin-top: 15px; background: var(--card-sub); padding: 14px; border-radius: 12px; border: 1px solid var(--border);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <span>Entradas del periodo:</span>
+                    <span id="statIngresos" style="color: var(--success); font-weight:bold;">$0</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <span>Salidas del periodo:</span>
+                    <span id="statGastos" style="color: var(--danger); font-weight:bold;">$0</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; border-top:1px solid var(--border); padding-top:8px; font-weight:bold;">
+                    <span>Balance Periodo:</span>
+                    <span id="statNeto">$0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>Movimientos en este Periodo</h3>
+            <div id="listaEstadisticasFiltro"></div>
+        </div>
+    </div>
+
+    <!---------------- SECCIÓN CATEGORÍAS ---------------->
+    <div id="view-categorias" class="section-view">
+        <div class="card">
+            <h3>Nueva Categoría</h3>
+            <input type="text" id="nuevaCategoria" placeholder="Nombre (ej. Inversiones)">
+            <button class="action-btn" style="background:var(--purple);" onclick="agregarCategoria()">Añadir Categoría</button>
+        </div>
+
+        <div class="card">
+            <h3>Categorías Existentes</h3>
+            <div id="listaCategorias"></div>
+        </div>
+    </div>
+
+    <script>
+        let db = JSON.parse(localStorage.getItem('finanzas_master_db')) || {
+            deudas: [],
+            ingresos: [],
+            gastos: [],
+            rapida: [],
+            historial: [], // Registro inmutable general
+            categorias: ['General', 'Servicios', 'Personal', 'Negocio']
+        };
+
+        let totalesOcultos = false;
+
+        function formatearInputMonto(input) {
+            let valorLimpio = input.value.replace(/\D/g, '');
+            if (valorLimpio === '') {
+                input.value = '';
+                return;
+            }
+            let numero = parseInt(valorLimpio, 10);
+            input.value = numero.toLocaleString('es-CO');
+        }
+
+        function obtenerValorLimpio(idInput) {
+            let val = document.getElementById(idInput).value.replace(/\D/g, '');
+            return val === '' ? 0 : parseInt(val, 10);
+        }
+
+        function formatCOP(valor) {
+            if (totalesOcultos) return '••••••';
+            let entero = Math.round(valor);
+            return '$' + entero.toLocaleString('es-CO');
+        }
+
+        function obtenerFechaHoraActual() {
+            let ahora = new Date();
+            let fechaIso = ahora.toISOString(); // Formato estándar para filtros
+            let opciones = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+            let fechaLegible = ahora.toLocaleDateString('es-CO', opciones);
+            return { iso: fechaIso, legible: fechaLegible };
+        }
+
+        function toggleOcultarTotales() {
+            totalesOcultos = !totalesOcultos;
+            let btn = document.getElementById('btnOcultarTotales');
+            btn.innerText = totalesOcultos ? '👁️‍🗨️ Mostrar' : '👁️ Ocultar';
+            renderizar();
+        }
+
+        function guardarDatos() {
+            localStorage.setItem('finanzas_master_db', JSON.stringify(db));
+            renderizar();
+        }
+
+        function cambiarTab(tabName, event) {
+            document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + tabName).classList.add('active');
+            event.target.classList.add('active');
+            if(tabName === 'estadisticas') actualizarEstadisticas();
+        }
+
+        function agregarTransaccion(tipo) {
+            let nombre, monto, subTipoOrCat, cuenta, estadoInicial = 'Pagado';
+            
+            if (tipo === 'deudas') {
+                nombre = document.getElementById('deudaNombre').value.trim();
+                monto = obtenerValorLimpio('deudaMonto');
+                subTipoOrCat = document.getElementById('deudaTipo').value;
+                cuenta = document.getElementById('deudaCuenta').value;
+                estadoInicial = 'Pendiente';
+            } else if (tipo === 'ingresos') {
+                nombre = document.getElementById('ingresoNombre').value.trim();
+                monto = obtenerValorLimpio('ingresoMonto');
+                subTipoOrCat = document.getElementById('ingresoCat').value;
+                cuenta = document.getElementById('ingresoCuenta').value;
+            } else if (tipo === 'gastos') {
+                nombre = document.getElementById('gastoNombre').value.trim();
+                monto = obtenerValorLimpio('gastoMonto');
+                subTipoOrCat = document.getElementById('gastoCat').value;
+                cuenta = document.getElementById('gastoCuenta').value;
+            }
+
+            if (!nombre || isNaN(monto)) {
+                alert("Por favor completa los campos correctamente.");
+                return;
+            }
+
+            if (monto < 100) {
+                alert("El valor mínimo permitido es de $100 pesos.");
+                return;
+            }
+
+            let fh = obtenerFechaHoraActual();
+            let nuevoItem = {
+                id: Date.now(),
+                nombre,
+                monto,
+                extra: subTipoOrCat,
+                cuenta,
+                estado: estadoInicial,
+                oculto: false,
+                tipoModulo: tipo,
+                fechaIso: fh.iso,
+                fechaLegible: fh.legible
+            };
+
+            db[tipo].push(nuevoItem);
+            db.historial.unshift(nuevoItem); // Se añade al historial general inmutable
+            guardarDatos();
+
+            if (tipo === 'deudas') { document.getElementById('deudaNombre').value = ''; document.getElementById('deudaMonto').value = ''; }
+            if (tipo === 'ingresos') { document.getElementById('ingresoNombre').value = ''; document.getElementById('ingresoMonto').value = ''; }
+            if (tipo === 'gastos') { document.getElementById('gastoNombre').value = ''; document.getElementById('gastoMonto').value = ''; }
+        }
+
+        function agregarRapido() {
+            let nombre = document.getElementById('rapidaNombre').value.trim();
+            let monto = obtenerValorLimpio('rapidaMonto');
+
+            if (!nombre) nombre = "Ítem Rápido";
+            if (isNaN(monto) || monto <= 0) { alert("Ingresa un monto válido."); return; }
+            if (monto < 100) { alert("El valor mínimo es $100."); return; }
+
+            let fh = obtenerFechaHoraActual();
+            let nuevoItem = {
+                id: Date.now(),
+                nombre,
+                monto,
+                extra: 'Rápida',
+                cuenta: 'Efectivo',
+                estado: 'Pagado',
+                oculto: false,
+                tipoModulo: 'rapida',
+                fechaIso: fh.iso,
+                fechaLegible: fh.legible
+            };
+
+            db.rapida.push(nuevoItem);
+            db.historial.unshift(nuevoItem);
+            document.getElementById('rapidaNombre').value = '';
+            document.getElementById('rapidaMonto').value = '';
+            guardarDatos();
+        }
+
+        function borrarTodoRapido() {
+            if (confirm("¿Vaciar cuenta rápida?")) {
+                db.rapida = [];
+                guardarDatos();
+            }
+        }
+
+        function eliminarElemento(tipo, id) {
+            db[tipo] = db[tipo].filter(item => item.id !== id);
+            guardarDatos(); // Nota: No se borra del historial general para preservar el registro inmutable
+        }
+
+        function cambiarEstado(tipo, id) {
+            let item = db[tipo].find(i => i.id === id);
+            if (item) {
+                item.estado = item.estado === 'Pagado' ? 'Pendiente' : 'Pagado';
+                guardarDatos();
+            }
+        }
+
+        function toggleOcultar(tipo, id) {
+            let item = db[tipo].find(i => i.id === id);
+            if (item) {
+                item.oculto = !item.oculto;
+                guardarDatos();
+            }
+        }
+
+        function agregarCategoria() {
+            let cat = document.getElementById('nuevaCategoria').value.trim();
+            if(cat && !db.categorias.includes(cat)) {
+                db.categorias.push(cat);
+                document.getElementById('nuevaCategoria').value = '';
+                guardarDatos();
+            } else {
+                alert("Categoría inválida o ya existe.");
+            }
+        }
+
+        function eliminarCategoria(cat) {
+            db.categorias = db.categorias.filter(c => c !== cat);
+            guardarDatos();
+        }
+
+        function renderizar() {
+            ['ingresoCat', 'gastoCat'].forEach(selectId => {
+                let sel = document.getElementById(selectId);
+                if(sel) {
+                    sel.innerHTML = '';
+                    db.categorias.forEach(c => {
+                        let opt = document.createElement('option');
+                        opt.value = c; opt.textContent = c;
+                        sel.appendChild(opt);
+                    });
+                }
+            });
+
+            renderListaDeudas();
+            renderListaGenerica('ingresos', 'listaIngresos', '#30d158');
+            renderListaGenerica('gastos', 'listaGastos', '#ff453a');
+            renderListaRapida();
+            renderListaHistorial();
+            renderListaCategorias();
+            calcularSaldosTotales();
+            actualizarEstadisticas();
+        }
+
+        function renderListaDeudas() {
+            let contenedor = document.getElementById('listaDeudas');
+            contenedor.innerHTML = '';
+            let sumaSubtotal = 0;
+
+            if (db.deudas.length === 0) { 
+                contenedor.innerHTML = '<div class="empty-state">No hay deudas registradas.</div>'; 
+                document.getElementById('sumaDeudasTotal').innerText = formatCOP(0);
+                return; 
+            }
+
+            db.deudas.forEach(item => {
+                if (!item.oculto) sumaSubtotal += item.monto;
+                let color = item.extra === 'Me deben' ? '#30d158' : '#ff453a';
+                let estadoClass = item.estado === 'Pagado' ? 'pagado' : 'pendiente';
+                let precioClase = item.oculto ? 'item-price hidden-price' : 'item-price';
+
+                let div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-details">
+                        <b>${item.nombre}</b>
+                        <div class="item-date">${item.fechaLegible}</div>
+                        <div class="tags-container">
+                            <span class="badge" style="color:${color}; background:${color}22;">${item.extra}</span>
+                            <span class="badge" style="color:var(--primary); background:rgba(10,132,255,0.15);">${item.cuenta}</span>
+                        </div>
+                    </div>
+                    <div class="item-right">
+                        <span class="${precioClase}" style="color: ${item.oculto ? '' : color};">${formatCOP(item.monto)}</span>
+                        <div style="display:flex; gap:6px; margin-top:4px; align-items:center; justify-content:flex-end;">
+                            <button class="status-btn ${estadoClass}" onclick="cambiarEstado('deudas', ${item.id})">${item.estado}</button>
+                            <div class="inline-controls">
+                                <button class="action-icon-btn" onclick="toggleOcultar('deudas', ${item.id})">${item.oculto ? '👁️‍🗨️' : '👁️'}</button>
+                                <button class="delete-icon" onclick="eliminarElemento('deudas', ${item.id})">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                contenedor.appendChild(div);
+            });
+            document.getElementById('sumaDeudasTotal').innerText = formatCOP(sumaSubtotal);
+        }
+
+        function renderListaGenerica(tipo, containerId, colorHex) {
+            let contenedor = document.getElementById(containerId);
+            contenedor.innerHTML = '';
+            let sumaSubtotal = 0;
+            let totalId = tipo === 'ingresos' ? 'sumaIngresosTotal' : 'sumaGastosTotal';
+
+            if (db[tipo].length === 0) { 
+                contenedor.innerHTML = '<div class="empty-state">No hay registros aún.</div>'; 
+                document.getElementById(totalId).innerText = formatCOP(0);
+                return; 
+            }
+
+            db[tipo].forEach(item => {
+                if (!item.oculto) sumaSubtotal += item.monto;
+                let estadoClass = item.estado === 'Pagado' ? 'pagado' : 'pendiente';
+                let precioClase = item.oculto ? 'item-price hidden-price' : 'item-price';
+
+                let div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-details">
+                        <b>${item.nombre}</b>
+                        <div class="item-date">${item.fechaLegible}</div>
+                        <div class="tags-container">
+                            <span class="badge" style="background:var(--card-sub); color:var(--text);">${item.extra}</span>
+                            <span class="badge" style="color:var(--primary); background:rgba(10,132,255,0.15);">${item.cuenta}</span>
+                        </div>
+                    </div>
+                    <div class="item-right">
+                        <span class="${precioClase}" style="color: ${item.oculto ? '' : colorHex};">${formatCOP(item.monto)}</span>
+                        <div style="display:flex; gap:6px; margin-top:4px; align-items:center; justify-content:flex-end;">
+                            <button class="status-btn ${estadoClass}" onclick="cambiarEstado('${tipo}', ${item.id})">${item.estado}</button>
+                            <div class="inline-controls">
+                                <button class="action-icon-btn" onclick="toggleOcultar('${tipo}', ${item.id})">${item.oculto ? '👁️‍🗨️' : '👁️'}</button>
+                                <button class="delete-icon" onclick="eliminarElemento('${tipo}', ${item.id})">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                contenedor.appendChild(div);
+            });
+            document.getElementById(totalId).innerText = formatCOP(sumaSubtotal);
+        }
+
+        function renderListaRapida() {
+            let contenedor = document.getElementById('listaRapida');
+            contenedor.innerHTML = '';
+            let sumaSubtotal = 0;
+
+            if (db.rapida.length === 0) {
+                contenedor.innerHTML = '<div class="empty-state">La cuenta rápida está vacía.</div>';
+                document.getElementById('sumaRapidaTotal').innerText = formatCOP(0);
+                return;
+            }
+
+            db.rapida.forEach(item => {
+                if (!item.oculto) sumaSubtotal += item.monto;
+                let precioClase = item.oculto ? 'item-price hidden-price' : 'item-price';
+
+                let div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-details">
+                        <b>${item.nombre}</b>
+                        <div class="item-date">${item.fechaLegible}</div>
+                    </div>
+                    <div class="item-right">
+                        <span class="${precioClase}" style="color: #9896f1;">${formatCOP(item.monto)}</span>
+                        <div class="inline-controls" style="margin-top:4px;">
+                            <button class="action-icon-btn" onclick="toggleOcultar('rapida', ${item.id})">${item.oculto ? '👁️‍🗨️' : '👁️'}</button>
+                            <button class="delete-icon" onclick="eliminarElemento('rapida', ${item.id})">&times;</button>
+                        </div>
+                    </div>
+                `;
+                contenedor.appendChild(div);
+            });
+            document.getElementById('sumaRapidaTotal').innerText = formatCOP(sumaSubtotal);
+        }
+
+        function renderListaHistorial() {
+            let contenedor = document.getElementById('listaHistorialGeneral');
+            contenedor.innerHTML = '';
+            if (db.historial.length === 0) {
+                contenedor.innerHTML = '<div class="empty-state">El historial está vacío.</div>';
+                return;
+            }
+
+            db.historial.forEach(item => {
+                let div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-details">
+                        <b>${item.nombre}</b>
+                        <div class="item-date">${item.fechaLegible} (${item.tipoModulo.toUpperCase()})</div>
+                        <div class="tags-container">
+                            <span class="badge" style="background:var(--card-sub);">${item.extra}</span>
+                        </div>
+                    </div>
+                    <div class="item-right">
+                        <span class="item-price">${formatCOP(item.monto)}</span>
+                    </div>
+                `;
+                contenedor.appendChild(div);
+            });
+        }
+
+        function renderListaCategorias() {
+            let contenedor = document.getElementById('listaCategorias');
+            contenedor.innerHTML = '';
+            db.categorias.forEach(cat => {
+                let div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-details"><b>${cat}</b></div>
+                    <button class="delete-icon" onclick="eliminarCategoria('${cat}')">&times;</button>
+                `;
+                contenedor.appendChild(div);
+            });
+        }
+
+        function actualizarEstadisticas() {
+            let tipoFiltro = document.getElementById('filtroTipoFecha').value;
+            let ahora = new Date();
+            let ingresosPeriodo = 0;
+            let gastosPeriodo = 0;
+            let contenedorFiltro = document.getElementById('listaEstadisticasFiltro');
+            contenedorFiltro.innerHTML = '';
+
+            let filtrados = db.historial.filter(item => {
+                let fechaItem = new Date(item.fechaIso);
+                if (tipoFiltro === 'dia') {
+                    return fechaItem.toDateString() === ahora.toDateString();
+                } else if (tipoFiltro === 'semana') {
+                    let inicioSemana = new Date(ahora);
+                    inicioSemana.setDate(ahora.getDate() - ahora.getDay());
+                    inicioSemana.setHours(0,0,0,0);
+                    return fechaItem >= inicioSemana;
+                } else if (tipoFiltro === 'mes') {
+                    return fechaItem.getMonth() === ahora.getMonth() && fechaItem.getFullYear() === ahora.getFullYear();
+                }
+                return true;
+            });
+
+            if (filtrados.length === 0) {
+                contenedorFiltro.innerHTML = '<div class="empty-state">No hay registros en este periodo.</div>';
+            }
+
+            filtrados.forEach(item => {
+                let esIngreso = (item.tipoModulo === 'ingresos' || (item.tipoModulo === 'deudas' && item.extra === 'Me deben'));
+                if (esIngreso) ingresosPeriodo += item.monto;
+                else gastosPeriodo += item.monto;
+
+                let div = document.createElement('div');
+                div.className = 'item-row';
+                div.innerHTML = `
+                    <div class="item-details">
+                        <b>${item.nombre}</b>
+                        <div class="item-date">${item.fechaLegible}</div>
+                    </div>
+                    <div class="item-right">
+                        <span class="item-price" style="color: ${esIngreso ? 'var(--success)' : 'var(--danger)'};">${formatCOP(item.monto)}</span>
+                    </div>
+                `;
+                contenedorFiltro.appendChild(div);
+            });
+
+            let netoPeriodo = ingresosPeriodo - gastosPeriodo;
+            document.getElementById('statIngresos').innerText = formatCOP(ingresosPeriodo);
+            document.getElementById('statGastos').innerText = formatCOP(gastosPeriodo);
+            let elemStatNeto = document.getElementById('statNeto');
+            elemStatNeto.innerText = formatCOP(netoPeriodo);
+            elemStatNeto.style.color = netoPeriodo >= 0 ? 'var(--success)' : 'var(--danger)';
+        }
+
+        function calcularSaldosTotales() {
+            let efectivo = 0;
+            let banco = 0;
+            let sumIngresos = 0;
+            let sumGastos = 0;
+
+            db.ingresos.forEach(i => {
+                if(i.estado === 'Pagado') {
+                    sumIngresos += i.monto;
+                    if(i.cuenta === 'Efectivo') efectivo += i.monto;
+                    if(i.cuenta === 'Banco') banco += i.monto;
+                }
+            });
+
+            db.gastos.forEach(g => {
+                if(g.estado === 'Pagado') {
+                    sumGastos += g.monto;
+                    if(g.cuenta === 'Efectivo') efectivo -= g.monto;
+                    if(g.cuenta === 'Banco') banco -= g.monto;
+                }
+            });
+
+            db.deudas.forEach(d => {
+                if(d.estado === 'Pagado') {
+                    if(d.extra === 'Me deben') {
+                        if(d.cuenta === 'Efectivo') efectivo += d.monto;
+                        if(d.cuenta === 'Banco') banco += d.monto;
+                    } else if(d.extra === 'Debo') {
+                        if(d.cuenta === 'Efectivo') efectivo -= d.monto;
+                        if(d.cuenta === 'Banco') banco -= d.monto;
+                    }
+                }
+            });
+
+            let balanceTotal = efectivo + banco;
+
+            document.getElementById('saldoEfectivo').innerText = formatCOP(efectivo);
+            document.getElementById('saldoBanco').innerText = formatCOP(banco);
+            document.getElementById('totalIngresos').innerText = formatCOP(sumIngresos);
+            document.getElementById('totalGastos').innerText = formatCOP(sumGastos);
+            
+            let elemNeto = document.getElementById('balanceNeto');
+            elemNeto.innerText = formatCOP(balanceTotal);
+            elemNeto.style.color = balanceTotal >= 0 ? '#30d158' : '#ff453a';
+        }
+
+        renderizar();
+    </script>
+
+</body>
+</html>
